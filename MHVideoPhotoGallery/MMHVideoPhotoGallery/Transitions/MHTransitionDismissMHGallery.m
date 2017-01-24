@@ -186,7 +186,7 @@
     
     if (imageViewerCurrent.isPlayingVideo && imageViewerCurrent.moviePlayer) {
         self.moviePlayer = imageViewerCurrent.moviePlayer;
-        [self.moviePlayer.view setFrame:AVMakeRectWithAspectRatioInsideRect(imageViewerCurrent.moviePlayer.naturalSize,fromViewController.view.bounds)];
+   //     [self.moviePlayer.view setFrame:AVMakeRectWithAspectRatioInsideRect(imageViewerCurrent.moviePlayer.naturalSize,fromViewController.view.bounds)];
         
         self.startFrame = self.moviePlayer.view.frame;
         
@@ -199,7 +199,7 @@
     self.navFrame = fromViewController.navigationBar.frame;
     if (self.toTransform != self.orientationTransformBeforeDismiss && !self.wrongTransform) {
         if (self.moviePlayer) {
-            [self.moviePlayer.view setFrame:AVMakeRectWithAspectRatioInsideRect(imageViewerCurrent.moviePlayer.naturalSize,CGRectMake(0, 0, fromViewController.view.bounds.size.width, fromViewController.view.bounds.size.height))];
+      //      [self.moviePlayer.view setFrame:AVMakeRectWithAspectRatioInsideRect(imageViewerCurrent.moviePlayer.naturalSize,CGRectMake(0, 0, fromViewController.view.bounds.size.width, fromViewController.view.bounds.size.height))];
             self.moviePlayer.view.transform = CGAffineTransformMakeRotation(self.orientationTransformBeforeDismiss);
             self.moviePlayer.view.center = UIApplication.sharedApplication.keyWindow.center;
             self.startFrame = self.moviePlayer.view.bounds;
@@ -218,7 +218,9 @@
 -(void)updateInteractiveTransition:(CGFloat)percentComplete{
     [super updateInteractiveTransition:percentComplete];
     self.backView.alpha = 1.1-percentComplete;
-    if (self.moviePlayer.playbackState != MPMoviePlaybackStateStopped && self.moviePlayer.playbackState != MPMoviePlaybackStatePaused) {
+    
+    if (self.moviePlayer.player.rate != 0) {
+    //if (self.moviePlayer.playbackState != MPMoviePlaybackStateStopped && self.moviePlayer.playbackState != MPMoviePlaybackStatePaused) {
         if (self.toTransform != self.orientationTransformBeforeDismiss) {
             if (self.orientationTransformBeforeDismiss <0) {
                 self.moviePlayer.view.center = CGPointMake(self.moviePlayer.view.center.x-self.changedPoint.y, self.moviePlayer.view.center.y+self.changedPoint.x);
@@ -248,6 +250,7 @@
     if (self.toTransform != self.orientationTransformBeforeDismiss && self.transitionImageView  && !self.wrongTransform) {
         [UIView animateWithDuration:0.2 animations:^{
             if (self.moviePlayer) {
+                [self.moviePlayer.player pause];
                 self.moviePlayer.view.transform = CGAffineTransformMakeRotation(self.toTransform);
             }else{
                 self.cellImageSnapshot.transform = CGAffineTransformMakeRotation(self.toTransform);

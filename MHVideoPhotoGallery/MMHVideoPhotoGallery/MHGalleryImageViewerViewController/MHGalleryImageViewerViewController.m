@@ -1182,13 +1182,18 @@
 
 -(void)sliderDidDragExit:(UISlider*)slider{
     if (self.playingVideo) {
-        [self.moviePlayer play];
+        [self.moviePlayer.player play];
     }
 }
 -(void)sliderDidChange:(UISlider*)slider{
     if (self.moviePlayer) {
-        [self.moviePlayer pause];
-        self.moviePlayer.currentPlaybackTime = slider.value;
+        [self.moviePlayer.player pause];
+
+        AVPlayer *player = self.moviePlayer.player;
+        AVPlayerItem *currentItem = player.currentItem;
+        int timescale = currentItem.asset.duration.timescale;
+
+        [self.moviePlayer.player seekToTime:CMTimeMakeWithSeconds(slider.value, timescale)];
         self.currentTimeMovie = slider.value;
         [self updateTimerLabels];
     }
@@ -1201,7 +1206,7 @@
     [self stopTimer];
     
     self.playingVideo = NO;
-    [self.moviePlayer pause];
+    [self.moviePlayer.player pause];
     
     [self.view bringSubviewToFront:self.playButton];
     [self.view bringSubviewToFront:self.moviePlayerToolBarTop];
@@ -1242,26 +1247,26 @@
 }
 
 - (void)loadStateDidChange:(NSNotification *)notification{
-	MPMoviePlayerController *player = notification.object;
-	MPMovieLoadState loadState = player.loadState;
-	if (loadState & MPMovieLoadStatePlayable){
-        if (!self.videoWasPlayable) {
-            [self performSelectorOnMainThread:@selector(changeToPlayable)
-                                   withObject:nil
-                                waitUntilDone:YES];
-        }
+	//AVPlayerViewController *player = notification.object;
+	//MPMovieLoadState loadState = player.loadState;
+	//if (loadState & MPMovieLoadStatePlayable){
+    //    if (!self.videoWasPlayable) {
+    //        [self performSelectorOnMainThread:@selector(changeToPlayable)
+    //                               withObject:nil
+    //                            waitUntilDone:YES];
+    //    }
         
-	}
-    if (loadState & MPMovieLoadStatePlaythroughOK){
-        self.videoDownloaded = YES;
-	}
+	//}
+    //if (loadState & MPMovieLoadStatePlaythroughOK){
+   //     self.videoDownloaded = YES;
+	//}
 	
-	if (loadState & MPMovieLoadStateStalled){
+	//if (loadState & MPMovieLoadStateStalled){
         
-        [self performSelectorOnMainThread:@selector(stopMovie)
-                               withObject:nil
-                            waitUntilDone:YES];
-	}
+      //  [self performSelectorOnMainThread:@selector(stopMovie)
+      //                         withObject:nil
+      //                      waitUntilDone:YES];
+	//}
 }
 
 -(void)updateTimerLabels{
@@ -1279,20 +1284,39 @@
 
 
 -(void)changeProgressBehinde:(NSTimer*)timer{
-    if (self.moviePlayer.playableDuration !=0) {
-        [self.videoProgressView setProgress:self.moviePlayer.playableDuration/self.moviePlayer.duration];
-        if ((self.moviePlayer.playableDuration == self.moviePlayer.duration)&& (self.moviePlayer.duration !=0)) {
+    AVPlayer *player = self.moviePlayer.player;
+    AVPlayerItem *currentItem = player.currentItem;
+    int timescale = currentItem.asset.duration.timescale;
+    Float64 dur = CMTimeGetSeconds([player currentTime]);
+    if (timescale != 0){
+        [self.videoProgressView setProgress:dur/timescale];
+        if ((dur == timescale) && (dur != 0)){
             [self stopMovieDownloadTimer];
         }
     }
+   // if (self.moviePlayer.playableDuration !=0) {
+   //     [self.videoProgressView setProgress:self.moviePlayer.playableDuration/self.moviePlayer.duration];
+   //     if ((self.moviePlayer.playableDuration == self.moviePlayer.duration)&& (self.moviePlayer.duration !=0)) {
+   //         [self stopMovieDownloadTimer];
+   //     }
+   // }
 }
 
 -(void)movieTimerChanged:(NSTimer*)timer{
-    self.currentTimeMovie = self.moviePlayer.currentPlaybackTime;
+    AVPlayer *player = self.moviePlayer.player;
+    Float64 dur = CMTimeGetSeconds([player currentTime]);
+    
+    self.currentTimeMovie = dur;
     if (!self.slider.isTracking) {
-        [self.slider setValue:self.moviePlayer.currentPlaybackTime animated:NO];
+        [self.slider setValue:dur animated:NO];
     }
     [self updateTimerLabels];
+    
+   // self.currentTimeMovie = self.moviePlayer.currentPlaybackTime;
+   // if (!self.slider.isTracking) {
+   //     [self.slider setValue:self.moviePlayer.currentPlaybackTime animated:NO];
+   // }
+   // [self updateTimerLabels];
 }
 
 -(void)addPlayButtonToView{
@@ -1335,7 +1359,7 @@
                                                 object:self.moviePlayer];
     
     
-    [self.moviePlayer stop];
+    [self.moviePlayer.player pause];
     [self.moviePlayer.view removeFromSuperview];
     self.moviePlayer = nil;
     
@@ -1355,8 +1379,8 @@
     self.playButton.hidden =NO;
     [self.view bringSubviewToFront:self.playButton];
     [self stopTimer];
-    
-    self.moviePlayer.currentPlaybackTime =0;
+    [self.moviePlayer.player seekToTime:CMTimeMake(0,0)];
+    //self.moviePlayer.currentPlaybackTime =0;
     [self movieTimerChanged:nil];
     [self updateTimerLabels];
     
@@ -1370,12 +1394,14 @@
     
     self.videoWasPlayable = NO;
     
-    self.moviePlayer = MPMoviePlayerController.new;
-    self.moviePlayer.backgroundView.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:[self currentViewMode]];
+    AVPlayer *player = [AVPlayer playerWithURL:URL];
+    
+    self.moviePlayer = [AVPlayerViewController new];
+    self.moviePlayer.player = player;
     self.moviePlayer.view.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:[self currentViewMode]];
-    self.moviePlayer.movieSourceType = MPMovieSourceTypeStreaming;
-    self.moviePlayer.controlStyle = MPMovieControlStyleNone;
-    self.moviePlayer.contentURL = URL;
+   // self.moviePlayer.backgroundView.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:[self currentViewMode]];
+    self.moviePlayer.view.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:[self currentViewMode]];
+
     
     [NSNotificationCenter.defaultCenter addObserver:self
                                            selector:@selector(loadStateDidChange:)
@@ -1387,7 +1413,7 @@
                                                name:MPMoviePlayerPlaybackDidFinishNotification
                                              object:self.moviePlayer];
     
-    self.moviePlayer.shouldAutoplay = NO;
+  //  self.moviePlayer.shouldAutoplay = NO;
     self.moviePlayer.view.frame = self.view.bounds;
     self.moviePlayer.view.autoresizingMask = UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
     self.moviePlayer.view.hidden = YES;
@@ -1422,7 +1448,7 @@
         self.playingVideo =YES;
         
         if (self.moviePlayer) {
-            [self.moviePlayer play];
+            [self.moviePlayer.player play];
             [self.viewController changeToPauseButton];
             
         }else{
@@ -1455,8 +1481,8 @@
 
 -(void)viewWillAppear:(BOOL)animated{
     [super viewWillAppear:animated];
-    
-    self.moviePlayer.backgroundView.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:[self currentViewMode]];
+    self.moviePlayer.view.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:[self currentViewMode]];
+  //  self.moviePlayer.backgroundView.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:[self currentViewMode]];
     self.scrollView.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:[self currentViewMode]];
     
     if (self.viewController.isHiddingToolBarAndNavigationBar) {
@@ -1475,7 +1501,10 @@
     if (self.item.galleryType == MHGalleryTypeVideo) {
         
         if (self.moviePlayer) {
-            [self.slider setValue:self.moviePlayer.currentPlaybackTime animated:NO];
+           AVPlayer *player = self.moviePlayer.player;
+           Float64 dur = CMTimeGetSeconds([player currentTime]);
+            [self.slider setValue:dur animated:NO];
+           // [self.slider setValue:self.moviePlayer.currentPlaybackTime animated:NO];
         }
         
         if (self.imageView.image) {
@@ -1508,8 +1537,8 @@
     if (viewMode == MHGalleryViewModeImageViewerNavigationBarShown) {
         alpha = 1;
     }
-    
-    self.moviePlayer.backgroundView.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:viewMode];
+    self.moviePlayer.view.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:viewMode];
+ //   self.moviePlayer.backgroundView.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:viewMode];
     self.scrollView.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:viewMode];
     self.viewController.pageViewController.view.backgroundColor = [self.viewController.UICustomization MHGalleryBackgroundColorForViewMode:viewMode];
     
