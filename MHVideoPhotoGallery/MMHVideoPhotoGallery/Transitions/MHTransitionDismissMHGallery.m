@@ -282,7 +282,8 @@
             self.cellImageSnapshot.layer.cornerRadius = self.transitionImageView.layer.cornerRadius;
             
             if (self.moviePlayer) {
-                self.moviePlayer.view.frame = [self.containerView convertRect:self.transitionImageView.frame fromView:self.transitionImageView.superview];
+						  [self.moviePlayer.player pause];
+              self.moviePlayer.view.frame = [self.containerView convertRect:self.transitionImageView.frame fromView:self.transitionImageView.superview];
             }else{
                 if (!self.transitionImageView) {
                     CGPoint newPoint = self.startCenter;
@@ -344,7 +345,7 @@
         UINavigationController *fromViewController = (UINavigationController*)[self.context viewControllerForKey:UITransitionContextFromViewControllerKey];
         if (self.moviePlayer) {
             if (self.toTransform != self.orientationTransformBeforeDismiss) {
-                self.moviePlayer.view.transform = CGAffineTransformMakeRotation(self.toTransform);
+							  self.moviePlayer.view.transform = CGAffineTransformMakeRotation(self.toTransform);
                 self.moviePlayer.view.center = CGPointMake(self.moviePlayer.view.bounds.size.width/2, self.moviePlayer.view.bounds.size.height/2);
             }else{
                 self.moviePlayer.view.bounds = fromViewController.view.bounds;
