@@ -3,6 +3,9 @@
 </p>
 ==================
 
+##Fork Description
+This fork uses AVPlayerViewControler instead of MPMoviePlayerController which is deprecated
+
 ## Podfile
 
 ```ruby
